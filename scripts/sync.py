@@ -27,8 +27,8 @@ PLATFORMS = {
     15: ("mac-intel", "dmg", lambda vb: f"{PXR}-{vb}.dmg"),
     16: ("win",       "exe", lambda vb: f"{PXR}_Setup_{vb}.exe"),
 }
-BACKFILL = ["8.3.0-515", "8.4.0-499", "8.5.0-550", "8.6.0-302",
-            "9.0.0-773", "9.1.0-592", "9.2.1-21"]
+BACKFILL = ["8.4.0-499", "8.5.0-550", "8.6.0-302",
+            "9.0.0-773", "9.1.0-592", "9.2.1-21", "9.3.0-249"]
 BF_MK = {vb.split("-")[0] for vb in BACKFILL}
 
 def run(c): return subprocess.run(c, text=True, capture_output=True)
