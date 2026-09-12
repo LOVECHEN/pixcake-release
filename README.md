@@ -14,13 +14,13 @@
 
 ---
 
-每个版本一个 [Release](https://github.com/LOVECHEN/pixcake-release/releases)，tag = `<版本>-<build>`。文件名：
+每个大版本一个 [Release](https://github.com/LOVECHEN/pixcake-release/releases)，tag = 版本号（如 `10.0.0`、`9.3.1`）。文件名带各平台真实 build（同一版本 mac 与 win 的 build 号可能不同）：
 
 | 平台 | 文件 |
 |------|------|
-| 🍎 macOS Apple 芯片 | `PixCake-<版本>-mac-arm64.dmg` |
-| 🍎 macOS Intel | `PixCake-<版本>-mac-intel.dmg` |
-| 🪟 Windows | `PixCake-<版本>-win.exe` |
+| 🍎 macOS Apple 芯片 | `PixCake-<版本-build>-mac-arm64.dmg` |
+| 🍎 macOS Intel | `PixCake-<版本-build>-mac-intel.dmg` |
+| 🪟 Windows | `PixCake-<版本-build>-win.exe` |
 
 - Beta 版标 `Pre-release`；每个 Release 附 `checksums.sha256`。
 - **大于 2GB 的文件被切成 `.part-*`**（GitHub 单文件上限 2GiB），合并：
