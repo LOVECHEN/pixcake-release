@@ -2,35 +2,48 @@ name: sync
 
 on:
   schedule:
-    - cron: '0 4 * * *'          # 每天 04:00 UTC 跟官方最新 + 回填历史
+    - cron: '0 4 * * *'
   workflow_dispatch:
-    inputs:
-      max_versions:
-        description: '本次最多处理多少个版本（增量，可多跑几次跑完回填）'
-        default: '100'
 
 permissions:
-  contents: write                 # 建 / 传 Release 需要
+  contents: write
 
 concurrency:
   group: sync
-  cancel-in-progress: false       # 别打断正在跑的下载
+  cancel-in-progress: false
 
 jobs:
-  sync:
+  # 1) 发现待处理的大版本列表（stable+beta 三平台 + 历史回填）
+  discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    outputs:
+      versions: ${{ steps.d.outputs.versions }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
+      - id: d
+        run: python3 scripts/sync.py discover
 
-      - name: 清出磁盘（runner 默认 ~14G，多腾点给 2GB 大包）
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
-          df -h /
-
-      - name: Sync from official CDN -> Releases
+  # 2) 每个大版本一个独立 job 并行跑（3 平台 ~20 分钟，永远远离 6h 上限）
+  sync:
+    needs: discover
+    if: needs.discover.outputs.versions != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 5            # 限并发，别把官方 CDN 打爆
+      matrix:
+        version: ${{ fromJSON(needs.discover.outputs.versions) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 腾磁盘
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+      - name: 同步 ${{ matrix.version }}
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          MAX_VERSIONS: ${{ github.event.inputs.max_versions || '100' }}
-        run: python3 scripts/sync.py
+          TARGET_VERSION: ${{ matrix.version }}
+        run: python3 scripts/sync.py sync
