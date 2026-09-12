@@ -21,6 +21,9 @@
 | 🍎 macOS Apple 芯片 | `PixCake-<版本-build>-mac-arm64.dmg` |
 | 🍎 macOS Intel | `PixCake-<版本-build>-mac-intel.dmg` |
 | 🪟 Windows | `PixCake-<版本-build>-win.exe` |
+| 🤖 Android | `PixCake-<版本-build>-android.apk` |
+
+> Android 是独立版本线（1.9.x），单独 tag `android-<版本>`（如 `android-1.9.2`）。桌面端 tag 为纯版本号（`10.0.0`/`9.3.1`）。
 
 - Beta 版标 `Pre-release`；每个 Release 附 `checksums.sha256`。
 - **大于 2GB 的文件被切成 `.part-*`**（GitHub 单文件上限 2GiB），合并：

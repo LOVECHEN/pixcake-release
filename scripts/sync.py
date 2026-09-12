@@ -81,6 +81,12 @@ def build_targets():
             u = f"{CDN}/{vb}/{PLATFORMS[at][2](vb)}"
             if head_ok(u): add(vb, u, at, 0)
 
+    # Android 官方最新 APK（另一套 app_type=110/type=2，CDN 前缀 pixcakemobile-package/，直接用 API 真实直链）
+    avb, aurl = api_get(110, 2)
+    if avb and aurl:
+        amk = "android-" + avb.split("-")[0]
+        T.setdefault(amk, {"stable": True, "beta": False, "plats": {}})["plats"]["android"] = (avb, aurl, "apk")
+
     res = {}
     for mk, t in T.items():
         res[mk] = {
@@ -88,7 +94,14 @@ def build_targets():
             "latest": (mk == stable_mk),
             "pre": t["beta"] and not t["stable"] and mk not in BF_MK and mk != stable_mk,
         }
-    order = sorted(res, key=lambda mk: tuple(int(x) for x in mk.split(".")), reverse=True)
+    def keyf(mk):
+        m = mk[len("android-"):] if mk.startswith("android-") else mk
+        try:
+            nums = tuple(int(x) for x in m.split("."))
+        except Exception:
+            nums = ()
+        return (0 if mk.startswith("android-") else 1, nums)   # 桌面在前, android 在后
+    order = sorted(res, key=keyf, reverse=True)
     return res, order
 
 def sync_release(mk, plats, pre, latest, wd):
@@ -99,8 +112,9 @@ def sync_release(mk, plats, pre, latest, wd):
         print(f"[{mk}] 已完整，跳过"); return
 
     if have is None:
-        c = ["gh", "release", "create", mk, "-R", REPO, "--title", f"PixCake {mk}",
-             "--notes", f"PixCake `{mk}`{'（Beta）' if pre else ''} 官方原包（各平台 build 号可能不同）。\n\n"
+        title = f"PixCake Android {mk[len('android-'):]}" if mk.startswith("android-") else f"PixCake {mk}"
+        c = ["gh", "release", "create", mk, "-R", REPO, "--title", title,
+             "--notes", f"{title}{'（Beta）' if pre else ''} 官方原包（各平台 build 号可能不同）。\n\n"
                         f"文件 >2GB 会切成 `.part-*`，合并：`cat 文件.part-* > 文件`，再用 `checksums.sha256` 校验。"]
         c += ["--prerelease"] if pre else ["--latest"] if latest else ["--latest=false"]
         run(c); print(f"  建 Release {mk}" + ("（Beta）" if pre else ""))
