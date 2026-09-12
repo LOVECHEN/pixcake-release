@@ -1,0 +1,7 @@
+# 二进制走 Release，不进 git
+*.dmg
+*.exe
+*.zip
+*.part-*
+_work/
+checksums.sha256

@@ -1,0 +1,36 @@
+name: sync
+
+on:
+  schedule:
+    - cron: '0 4 * * *'          # 每天 04:00 UTC 跟官方最新 + 回填历史
+  workflow_dispatch:
+    inputs:
+      max_versions:
+        description: '本次最多处理多少个版本（增量，可多跑几次跑完回填）'
+        default: '100'
+
+permissions:
+  contents: write                 # 建 / 传 Release 需要
+
+concurrency:
+  group: sync
+  cancel-in-progress: false       # 别打断正在跑的下载
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 清出磁盘（runner 默认 ~14G，多腾点给 2GB 大包）
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          df -h /
+
+      - name: Sync from official CDN -> Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          MAX_VERSIONS: ${{ github.event.inputs.max_versions || '100' }}
+        run: python3 scripts/sync.py
