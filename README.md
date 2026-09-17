@@ -33,4 +33,4 @@ cat PixCake-9.2.1-21-mac-arm64.dmg.part-* > PixCake-9.2.1-21-mac-arm64.dmg
 shasum -a 256 -c checksums.sha256
 ```
 
-<div align="center"><sub>官方安装包归档 · 数据源 <a href="https://www.pixcakeai.com">pixcakeai.com</a></sub></div>
+<div align="center"><sub>官方安装包归档</sub></div>

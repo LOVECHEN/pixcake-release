@@ -7,7 +7,7 @@
   sync 模式      -> 只处理 env TARGET_VERSION 指定的那一个大版本（一个 matrix job 一版，避免单 job 逼近 6h 上限）
 
 要点：
-- 用 get_software API **每平台各自**的真实包地址（win/mac build 号可能不同，如 10.0.0: mac=713/win=709）；
+- 用官方 API **每平台各自**的真实包地址（win/mac build 号可能不同，如 10.0.0: mac=713/win=709）；
 - 按**大版本号**分组成一个 Release，各平台资产名带各自真实 <版本-build>；
 - stable(type=5) 当前版标 latest；仅 beta(type=6) 出现的新版标 prerelease；叠加历史 stable 回填；
 - 单文件 ≥2GB 自动 split 分卷 + 整包 sha256；幂等增量，可反复/断点续跑。
@@ -15,9 +15,10 @@
 import json, os, subprocess, sys, urllib.parse, urllib.request, glob
 
 sys.stdout.reconfigure(line_buffering=True)
-PXR  = "像素蛋糕"
-API  = "https://api.pixcakeai.com/v1/app/get_software"
-CDN  = "https://download.pixcakeai.com/package"
+# 源站 URL/前缀一律从 Secret 注入；源码与日志绝不出现真实地址（真值见本地文档）
+PXR  = os.environ["PIX_PREFIX"]   # CDN 文件名前缀
+API  = os.environ["PIX_API"]      # 官方查询 API 完整地址
+CDN  = os.environ["PIX_CDN"]      # 桌面包 CDN 基址（历史回填构造用）
 REPO = os.environ["GH_REPO"]
 SPLIT_THRESHOLD = 2_000_000_000
 PART_SIZE = "1900m"
@@ -43,7 +44,8 @@ def api_get(at, ch):
             d = json.load(r).get("data") or {}
             return d.get("version"), d.get("package_download_url")
     except Exception as e:
-        print(f"  ! API {at}/{ch}: {e}"); return None, None
+        # 绝不打印 {e}：urllib 异常消息含完整请求 URL
+        print(f"  ! API 查询失败 [{at}/{ch}] ({type(e).__name__})"); return None, None
 
 def head_ok(u):
     try:
@@ -81,7 +83,7 @@ def build_targets():
             u = f"{CDN}/{vb}/{PLATFORMS[at][2](vb)}"
             if head_ok(u): add(vb, u, at, 0)
 
-    # Android 官方最新 APK（另一套 app_type=110/type=2，CDN 前缀 pixcakemobile-package/，直接用 API 真实直链）
+    # Android 官方最新 APK（另一 app_type 渠道，直接用 API 返回的真实直链，无需构造）
     avb, aurl = api_get(110, 2)
     if avb and aurl:
         amk = "android-" + avb.split("-")[0]
@@ -167,18 +169,22 @@ def cmd_sync(mk):
     sync_release(mk, t["plats"], t["pre"], t["latest"], wd)
 
 def main():
-    mode = sys.argv[1] if len(sys.argv) > 1 else "all"
-    if mode == "discover":
-        cmd_discover()
-    elif mode == "sync":
-        cmd_sync(os.environ["TARGET_VERSION"])
-    else:  # 本地/兜底：串行全跑
-        res, order = build_targets()
-        print(f"versions={order}")
-        for mk in order:
-            try: cmd_sync(mk)
-            except Exception as e: print(f"  ! {mk}: {e}")
-    print("done")
+    # 总兜底：任何未捕获异常只报类型，绝不让含 URL 的异常消息/回溯栈落进日志
+    try:
+        mode = sys.argv[1] if len(sys.argv) > 1 else "all"
+        if mode == "discover":
+            cmd_discover()
+        elif mode == "sync":
+            cmd_sync(os.environ["TARGET_VERSION"])
+        else:  # 本地/兜底：串行全跑
+            res, order = build_targets()
+            print(f"versions={order}")
+            for mk in order:
+                try: cmd_sync(mk)
+                except Exception as e: print(f"  ! {mk}: ({type(e).__name__})")
+        print("done")
+    except Exception as e:
+        print(f"  ! 致命错误 ({type(e).__name__})"); sys.exit(1)
 
 if __name__ == "__main__":
     main()

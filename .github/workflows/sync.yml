@@ -21,6 +21,9 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
+      PIX_API: ${{ secrets.PIX_API }}
+      PIX_CDN: ${{ secrets.PIX_CDN }}
+      PIX_PREFIX: ${{ secrets.PIX_PREFIX }}
     steps:
       - uses: actions/checkout@v4
       - id: d
@@ -46,4 +49,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TARGET_VERSION: ${{ matrix.version }}
+          PIX_API: ${{ secrets.PIX_API }}
+          PIX_CDN: ${{ secrets.PIX_CDN }}
+          PIX_PREFIX: ${{ secrets.PIX_PREFIX }}
         run: python3 scripts/sync.py sync
